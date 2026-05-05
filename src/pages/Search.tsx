@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Navbar } from "@/components/Navbar";
 import { RepoCard } from "@/components/RepoCard";
 import { searchRepos, type Repo } from "@/lib/github";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { PLATFORM_LABEL, type Platform } from "@/lib/os";
+import { Helmet } from "react-helmet-async";
 
 const LANGUAGES = [
   "", "JavaScript", "TypeScript", "Python", "Rust", "Go", "C++", "C", "C#",
@@ -66,7 +66,9 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
+      <Helmet>
+        <title>{q ? `Search: ${q} - GHFrog` : "Search - GHFrog"}</title>
+      </Helmet>
       <main className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
           <aside className="space-y-5">
@@ -174,7 +176,7 @@ export default function SearchPage() {
 
             {!fullQuery && (
               <div className="gh-card p-6 text-sm text-muted-foreground">
-                Enter a query to start searching.
+                Enter a query to find apps with releases.
               </div>
             )}
             {error && <div className="gh-card p-4 text-sm text-destructive">{error}</div>}

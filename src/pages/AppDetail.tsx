@@ -4,20 +4,20 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { Star, Download, ExternalLink, RefreshCw, ChevronDown } from "lucide-react";
-import { Navbar } from "@/components/Navbar";
-import { getReadme, getReleases, getRepo, type Release, type Repo } from "@/lib/github";
+import { getReleases, getRepo, type Release, type Repo } from "@/lib/github";
 import { detectOS, formatBytes, pickBestAsset, PLATFORM_LABEL, type Platform } from "@/lib/os";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useRecent } from "@/hooks/useRecent";
 import { formatStars, timeAgo } from "@/lib/format";
+import { Helmet } from "react-helmet-async";
 
-type Tab = "readme" | "releases" | "assets" | "screenshots";
+type Tab = "latest" | "releases" | "assets";
 
 export default function AppDetail() {
   const { owner = "", repo = "" } = useParams();
   const [data, setData] = useState<Repo | null>(null);
   const [releases, setReleases] = useState<Release[] | null>(null);
-  const [readme, setReadme] = useState<{ markdown: string; path: string } | null>(null);
-  const [tab, setTab] = useState<Tab>("readme");
+  const [tab, setTab] = useState<Tab>("latest");
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showAllAssets, setShowAllAssets] = useState(false);
@@ -29,12 +29,10 @@ export default function AppDetail() {
     Promise.all([
       getRepo(owner, repo, bypass),
       getReleases(owner, repo, bypass),
-      getReadme(owner, repo, bypass),
     ])
-      .then(([r, rel, rd]) => {
+      .then(([r, rel]) => {
         setData(r);
         setReleases(rel);
-        setReadme(rd);
       })
       .catch((e) => setError(e.message))
       .finally(() => setRefreshing(false));
@@ -43,10 +41,24 @@ export default function AppDetail() {
   useEffect(() => {
     setData(null);
     setReleases(null);
-    setReadme(null);
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [owner, repo]);
+
+  const { addRecent } = useRecent();
+  useEffect(() => {
+    if (data) {
+      addRecent({
+        owner: data.owner.login,
+        repo: data.name,
+        name: data.name,
+        description: data.description,
+        stars: data.stargazers_count,
+        language: data.language,
+        pushedAt: data.pushed_at,
+      });
+    }
+  }, [data, addRecent]);
 
   const latest = releases?.[0];
   const { best, byPlatform } = useMemo(
@@ -54,22 +66,13 @@ export default function AppDetail() {
     [latest, os],
   );
 
-  const screenshots = useMemo(() => {
-    if (!readme) return [];
-    const out: string[] = [];
-    const re = /!\[[^\]]*\]\(([^)\s]+)/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(readme.markdown)) !== null) out.push(m[1]);
-    const re2 = /<img[^>]+src=["']([^"']+)/gi;
-    while ((m = re2.exec(readme.markdown)) !== null) out.push(m[1]);
-    return Array.from(new Set(out)).slice(0, 12).map((u) => rewriteImg(u, owner, repo, data?.default_branch || "main"));
-  }, [readme, owner, repo, data?.default_branch]);
-
   const fav = isFav(owner, repo);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
+      <Helmet>
+        <title>{data ? `${data.name} - GHFrog` : `${owner}/${repo} - GHFrog`}</title>
+      </Helmet>
       <main className="max-w-5xl mx-auto px-4 py-6">
         <div className="text-sm mb-4">
           <Link to="/" className="underline">Home</Link>
@@ -87,8 +90,9 @@ export default function AppDetail() {
               <div className="flex items-start gap-4 flex-wrap">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-muted-foreground">{owner}</div>
-                  <h1 className="text-3xl font-extrabold leading-tight break-words">
-                    <span className="mr-2" aria-hidden>🐸</span>{data.name}
+                  <h1 className="flex items-center gap-3 text-3xl font-extrabold leading-tight break-words">
+                    <img src={data.owner.avatar_url} alt={`${data.owner.login} avatar`} className="w-8 h-8 shrink-0 rounded-[3px] bg-muted object-cover border border-border" />
+                    <span>{data.name}</span>
                   </h1>
                   <p className="text-sm text-muted-foreground mt-1 mb-3">
                     {data.description || "No description"}
@@ -198,79 +202,77 @@ export default function AppDetail() {
               )}
             </div>
 
-            {/* Tabs */}
-            <div className="border-b border-border flex gap-1 mb-4 overflow-x-auto">
-              {(
-                [
-                  ["readme", "README"],
-                  ["releases", `Releases${releases ? ` (${releases.length})` : ""}`],
-                  ["assets", "All assets"],
-                  ["screenshots", `Screenshots${screenshots.length ? ` (${screenshots.length})` : ""}`],
-                ] as Array<[Tab, string]>
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setTab(key)}
-                  className={`px-3 py-2 text-sm font-semibold border border-border border-b-0 rounded-t-[3px] -mb-px ${
-                    tab === key ? "bg-foreground text-background" : "bg-background hover:bg-muted"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {tab === "readme" && (
-              <div className="gh-card p-5">
-                {readme ? (
-                  <div className="gh-markdown">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeRaw]}
-                      urlTransform={(url) => rewriteImg(url, owner, repo, data.default_branch)}
-                    >
-                      {readme.markdown}
-                    </ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No README found.</p>
-                )}
+            {/* No releases empty state */}
+            {releases && releases.length === 0 && (
+              <div className="gh-card p-8 text-center">
+                <p className="text-lg font-bold mb-2">No releases published yet</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  This repository hasn't published any releases on GitHub.
+                </p>
+                <a href={data.html_url} target="_blank" rel="noreferrer" className="gh-btn-primary">
+                  <ExternalLink size={14} /> View on GitHub
+                </a>
               </div>
             )}
 
-            {tab === "releases" && (
-              <div className="space-y-4">
-                {releases && releases.length > 0 ? (
-                  releases.map((r) => (
-                    <div key={r.id} className="gh-card p-4">
-                      <div className="flex items-baseline justify-between flex-wrap gap-2 mb-2">
-                        <h3 className="font-bold text-lg">
-                          {r.name || r.tag_name}{" "}
-                          <span className="text-xs font-normal text-muted-foreground">
-                            {r.tag_name}
-                          </span>
-                        </h3>
-                        <div className="text-xs text-muted-foreground">
-                          {timeAgo(r.published_at)}
-                          {r.prerelease && <span className="gh-badge ml-2">prerelease</span>}
-                        </div>
+            {/* Tabs — only show if there are releases */}
+            {releases && releases.length > 0 && (
+              <>
+                <div 
+                  className="inline-flex mb-6 border-2 border-border rounded-[3px] overflow-x-auto" 
+                  style={{ boxShadow: "2px 2px 0 0 hsl(var(--border))" }}
+                >
+                  {(
+                    [
+                      ["latest", `Latest Release`],
+                      ["releases", `All Releases (${releases.length})`],
+                      ["assets", "All Assets"],
+                    ] as Array<[Tab, string]>
+                  ).map(([key, label], index) => (
+                    <button
+                      key={key}
+                      onClick={() => setTab(key)}
+                      className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${
+                        index !== 0 ? "border-l-2 border-border" : ""
+                      } ${
+                        tab === key 
+                          ? "bg-foreground text-background" 
+                          : "bg-background hover:bg-muted text-foreground"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {tab === "latest" && latest && (
+                  <div className="gh-card p-5">
+                    <div className="flex items-baseline justify-between flex-wrap gap-2 mb-3">
+                      <h2 className="font-bold text-xl">
+                        {latest.name || latest.tag_name}{" "}
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {latest.tag_name}
+                        </span>
+                      </h2>
+                      <div className="text-xs text-muted-foreground">
+                        Released {timeAgo(latest.published_at)}
+                        {latest.prerelease && <span className="gh-badge ml-2">prerelease</span>}
                       </div>
-                      {r.body && (
-                        <details className="mt-2">
-                          <summary className="text-sm cursor-pointer underline">Release notes</summary>
-                          <div className="gh-markdown mt-3">
-                            <ReactMarkdown
-                              remarkPlugins={[remarkGfm]}
-                              urlTransform={(url) => rewriteImg(url, owner, repo, data.default_branch)}
-                            >
-                              {r.body}
-                            </ReactMarkdown>
-                          </div>
-                        </details>
-                      )}
-                      {r.assets.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {r.assets.map((a) => (
+                    </div>
+                    {latest.body ? (
+                      <div className="gh-markdown">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                          {latest.body}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No release notes provided.</p>
+                    )}
+                    {latest.assets.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-border">
+                        <div className="text-xs font-bold uppercase mb-2">Downloads</div>
+                        <div className="flex flex-wrap gap-2">
+                          {latest.assets.map((a) => (
                             <a
                               key={a.id}
                               href={a.browser_download_url}
@@ -282,78 +284,97 @@ export default function AppDetail() {
                             </a>
                           ))}
                         </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <div className="gh-card p-5 text-sm text-muted-foreground">No releases yet.</div>
-                )}
-              </div>
-            )}
-
-            {tab === "assets" && latest && (
-              <div className="gh-card p-4 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left border-b border-border">
-                      <th className="py-2 pr-3">Name</th>
-                      <th className="py-2 pr-3">Size</th>
-                      <th className="py-2 pr-3">Downloads</th>
-                      <th className="py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {latest.assets.map((a) => (
-                      <tr key={a.id} className="border-b border-border last:border-0">
-                        <td className="py-2 pr-3 font-mono text-xs break-all">{a.name}</td>
-                        <td className="py-2 pr-3 whitespace-nowrap">{formatBytes(a.size)}</td>
-                        <td className="py-2 pr-3 whitespace-nowrap">{a.download_count.toLocaleString()}</td>
-                        <td className="py-2 text-right">
-                          <a href={a.browser_download_url} download className="gh-btn !py-1 !px-2 text-xs">
-                            <Download size={12} /> Get
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                    {latest.assets.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="py-3 text-muted-foreground text-center">
-                          No assets in latest release.
-                        </td>
-                      </tr>
+                      </div>
                     )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  </div>
+                )}
 
-            {tab === "screenshots" && (
-              <div className="gh-card p-4">
-                {screenshots.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No screenshots found in README.</p>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {screenshots.map((src) => (
-                      <a key={src} href={src} target="_blank" rel="noreferrer" className="block border border-border rounded-[3px] overflow-hidden">
-                        <img src={src} alt="screenshot" className="w-full h-auto block" loading="lazy" />
-                      </a>
+                {tab === "releases" && (
+                  <div className="space-y-4">
+                    {releases.map((r) => (
+                      <div key={r.id} className="gh-card p-4">
+                        <div className="flex items-baseline justify-between flex-wrap gap-2 mb-2">
+                          <h3 className="font-bold text-lg">
+                            {r.name || r.tag_name}{" "}
+                            <span className="text-xs font-normal text-muted-foreground">
+                              {r.tag_name}
+                            </span>
+                          </h3>
+                          <div className="text-xs text-muted-foreground">
+                            {timeAgo(r.published_at)}
+                            {r.prerelease && <span className="gh-badge ml-2">prerelease</span>}
+                          </div>
+                        </div>
+                        {r.body && (
+                          <details className="mt-2">
+                            <summary className="text-sm cursor-pointer underline">Release notes</summary>
+                            <div className="gh-markdown mt-3">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+                                {r.body}
+                              </ReactMarkdown>
+                            </div>
+                          </details>
+                        )}
+                        {r.assets.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {r.assets.map((a) => (
+                              <a
+                                key={a.id}
+                                href={a.browser_download_url}
+                                download
+                                className="gh-chip"
+                                title={`${formatBytes(a.size)} · ${a.download_count.toLocaleString()} downloads`}
+                              >
+                                <Download size={12} /> {a.name}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
-              </div>
+
+                {tab === "assets" && latest && (
+                  <div className="gh-card p-4 overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left border-b border-border">
+                          <th className="py-2 pr-3">Name</th>
+                          <th className="py-2 pr-3">Size</th>
+                          <th className="py-2 pr-3">Downloads</th>
+                          <th className="py-2"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {latest.assets.map((a) => (
+                          <tr key={a.id} className="border-b border-border last:border-0">
+                            <td className="py-2 pr-3 font-mono text-xs break-all">{a.name}</td>
+                            <td className="py-2 pr-3 whitespace-nowrap">{formatBytes(a.size)}</td>
+                            <td className="py-2 pr-3 whitespace-nowrap">{a.download_count.toLocaleString()}</td>
+                            <td className="py-2 text-right">
+                              <a href={a.browser_download_url} download className="gh-btn !py-1 !px-2 text-xs">
+                                <Download size={12} /> Get
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                        {latest.assets.length === 0 && (
+                          <tr>
+                            <td colSpan={4} className="py-3 text-muted-foreground text-center">
+                              No assets in latest release.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
       </main>
     </div>
   );
-}
-
-function rewriteImg(url: string, owner: string, repo: string, branch: string): string {
-  if (!url) return url;
-  if (/^https?:\/\//i.test(url) || url.startsWith("data:") || url.startsWith("#") || url.startsWith("mailto:")) {
-    return url;
-  }
-  const clean = url.replace(/^\.\//, "").replace(/^\//, "");
-  return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${clean}`;
 }

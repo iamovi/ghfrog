@@ -1,5 +1,6 @@
-import { Navbar } from "@/components/Navbar";
 import { HomeSection } from "@/components/HomeSection";
+import { RecentSection } from "@/components/RecentSection";
+import { Helmet } from "react-helmet-async";
 
 const Index = () => {
   // ISO date 30 days ago for trending
@@ -9,20 +10,24 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
+      <Helmet>
+        <title>GHFrog - GitHub App Store</title>
+      </Helmet>
       <main className="max-w-7xl mx-auto px-4 py-8">
         <section className="mb-10 border border-border rounded-[3px] p-6 sm:p-10">
           <div className="flex items-center gap-3 mb-3">
-            <span className="text-4xl" aria-hidden>🐸</span>
+            <img src="/frog.png" alt="GHFrog Logo" className="w-12 h-12" />
             <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
               GHFrog
             </h1>
           </div>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl">
-            A browser app store for open-source software released on GitHub.
-            Discover, download, and bookmark — no install, no account.
+            A browser-based app store for open-source software released on GitHub.
+            Discover releases, download binaries, and bookmark your favorites. Sign in with GitHub to boost your API limits and explore without restrictions.
           </p>
         </section>
+
+        <RecentSection />
 
         <HomeSection
           title="Trending"
@@ -46,7 +51,7 @@ const Index = () => {
         />
 
         <footer className="text-center text-xs text-muted-foreground py-8 border-t border-border mt-10">
-          Built with 🐸 · Data from the GitHub REST API · Cached locally to save quota
+          Built with 🐸 · Releases from the GitHub API · Cached locally to save quota
         </footer>
       </main>
     </div>

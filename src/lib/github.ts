@@ -53,23 +53,34 @@ export interface RateLimit {
   reset: number;
 }
 
-let lastRateLimit: RateLimit | null = null;
-const rateListeners = new Set<(r: RateLimit | null) => void>();
-
-export function getRateLimit(): RateLimit | null {
-  return lastRateLimit;
+export interface RateLimits {
+  search: RateLimit | null;
+  core: RateLimit | null;
 }
-export function onRateLimit(cb: (r: RateLimit | null) => void): () => void {
+
+const lastRateLimits: RateLimits = { search: null, core: null };
+const rateListeners = new Set<(r: RateLimits) => void>();
+
+export function getRateLimit(): RateLimits {
+  return { ...lastRateLimits };
+}
+export function onRateLimit(cb: (r: RateLimits) => void): () => void {
   rateListeners.add(cb);
   return () => rateListeners.delete(cb);
 }
-function setRateLimit(headers: Headers): void {
+function setRateLimit(headers: Headers, url: string): void {
   const limit = Number(headers.get("x-ratelimit-limit"));
   const remaining = Number(headers.get("x-ratelimit-remaining"));
   const reset = Number(headers.get("x-ratelimit-reset"));
+  const resource = headers.get("x-ratelimit-resource") || (url.includes("/search/") ? "search" : "core");
+  
   if (!isNaN(limit) && limit > 0) {
-    lastRateLimit = { limit, remaining, reset };
-    rateListeners.forEach((cb) => cb(lastRateLimit));
+    if (resource === "search") {
+      lastRateLimits.search = { limit, remaining, reset };
+    } else {
+      lastRateLimits.core = { limit, remaining, reset };
+    }
+    rateListeners.forEach((cb) => cb({ ...lastRateLimits }));
   }
 }
 
@@ -104,7 +115,7 @@ async function ghFetch<T>(path: string, opts: FetchOpts): Promise<T> {
   if (cached?.etag) headers["If-None-Match"] = cached.etag;
 
   const res = await fetch(url, { headers });
-  setRateLimit(res.headers);
+  setRateLimit(res.headers, url);
 
   if (res.status === 304 && cached) {
     const refreshed: CacheEntry<T> = { ...cached, fetchedAt: Date.now() };
@@ -155,31 +166,4 @@ export async function getReleases(owner: string, repo: string, bypassCache = fal
     ttlMs: 30 * 60_000,
     bypassCache,
   });
-}
-
-interface ReadmeRaw {
-  content: string;
-  encoding: string;
-  path: string;
-}
-
-export async function getReadme(
-  owner: string,
-  repo: string,
-  bypassCache = false,
-): Promise<{ markdown: string; path: string } | null> {
-  try {
-    const raw = await ghFetch<ReadmeRaw>(`/repos/${owner}/${repo}/readme`, {
-      ttlMs: 6 * 60 * 60_000,
-      bypassCache,
-    });
-    if (!raw?.content) return null;
-    const decoded =
-      raw.encoding === "base64"
-        ? decodeURIComponent(escape(atob(raw.content.replace(/\n/g, ""))))
-        : raw.content;
-    return { markdown: decoded, path: raw.path };
-  } catch {
-    return null;
-  }
 }

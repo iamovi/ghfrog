@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -41,8 +41,33 @@
   }
 
   .dark {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 0%;
+    --background: 0 0% 12%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 16%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 16%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+
+    --secondary: 0 0% 25%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 142 71% 45%;
+    --accent-foreground: 0 0% 9%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+    --ring: 142 71% 45%;
   }
 }
 
@@ -53,8 +78,30 @@
 
   html, body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Noto Serif', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* Custom neo-brutalist scrollbar */
+  ::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+    border-left: 2px solid hsl(var(--border));
+    border-top: 2px solid hsl(var(--border));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--foreground));
+    border: 2px solid hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--frog));
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--foreground)) hsl(var(--background));
   }
 }
 
@@ -64,17 +111,23 @@
   }
   .gh-card-hover {
     @apply hover:-translate-x-[2px] hover:-translate-y-[2px];
-    box-shadow: 0 0 0 0 hsl(var(--foreground));
+    box-shadow: 0 0 0 0 hsl(var(--border));
     transition: box-shadow 120ms ease, transform 120ms ease;
   }
   .gh-card-hover:hover {
-    box-shadow: 4px 4px 0 0 hsl(var(--foreground));
+    box-shadow: 4px 4px 0 0 hsl(var(--border));
   }
   .gh-btn {
-    @apply inline-flex items-center justify-center gap-2 border border-border rounded-[3px] px-4 py-2 text-sm font-semibold bg-background text-foreground transition-colors;
+    @apply inline-flex items-center justify-center gap-2 border-2 border-border rounded-[3px] px-4 py-2 text-sm font-bold bg-background text-foreground transition-all;
+    box-shadow: 2px 2px 0 0 hsl(var(--border));
   }
   .gh-btn:hover {
-    @apply bg-foreground text-background;
+    @apply -translate-x-[1px] -translate-y-[1px];
+    box-shadow: 3px 3px 0 0 hsl(var(--border));
+  }
+  .gh-btn:active {
+    @apply translate-x-[2px] translate-y-[2px];
+    box-shadow: 0 0 0 0 hsl(var(--border));
   }
   .gh-btn-primary {
     @apply gh-btn;
@@ -82,8 +135,8 @@
     color: hsl(var(--foreground));
   }
   .gh-btn-primary:hover {
-    background: hsl(var(--foreground));
-    color: hsl(var(--background));
+    background: hsl(var(--frog));
+    color: hsl(var(--foreground));
   }
   .gh-input {
     @apply w-full border border-border rounded-[3px] px-3 py-2 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-foreground;
