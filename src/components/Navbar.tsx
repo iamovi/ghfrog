@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { Search, Bookmark, LogOut, Sun, Moon, Github, KeyRound, User } from "lucide-react";
+import { Search, Bookmark, LogOut, Sun, Moon, KeyRound, User } from "lucide-react";
+import { GithubIcon as Github } from "@/components/GithubIcon";
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -3,7 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import { Star, Download, ExternalLink, RefreshCw, ChevronDown } from "lucide-react";
+import { Star, Download, ExternalLink, RefreshCw, ChevronDown, Share2 } from "lucide-react";
+import { toast } from "sonner";
 import { getReleases, getRepo, type Release, type Repo } from "@/lib/github";
 import { detectOS, formatBytes, pickBestAsset, PLATFORM_LABEL, type Platform } from "@/lib/os";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -23,6 +24,20 @@ export default function AppDetail() {
   const [showAllAssets, setShowAllAssets] = useState(false);
   const { isFav, toggle } = useFavorites();
   const os = useMemo(() => detectOS(), []);
+
+  const handleShare = async (releaseName: string) => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${data?.name} - ${releaseName}`, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("App link copied to clipboard!");
+      }
+    } catch {
+      // ignore
+    }
+  };
 
   const load = (bypass = false) => {
     setError(null);
@@ -254,9 +269,12 @@ export default function AppDetail() {
                           {latest.tag_name}
                         </span>
                       </h2>
-                      <div className="text-xs text-muted-foreground">
-                        Released {timeAgo(latest.published_at)}
-                        {latest.prerelease && <span className="gh-badge ml-2">prerelease</span>}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Released {timeAgo(latest.published_at)}</span>
+                        {latest.prerelease && <span className="gh-badge">prerelease</span>}
+                        <button onClick={() => handleShare(latest.name || latest.tag_name)} className="hover:text-foreground ml-1 transition-colors" title="Share App Link">
+                          <Share2 size={14} />
+                        </button>
                       </div>
                     </div>
                     {latest.body ? (
@@ -300,9 +318,12 @@ export default function AppDetail() {
                               {r.tag_name}
                             </span>
                           </h3>
-                          <div className="text-xs text-muted-foreground">
-                            {timeAgo(r.published_at)}
-                            {r.prerelease && <span className="gh-badge ml-2">prerelease</span>}
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>{timeAgo(r.published_at)}</span>
+                            {r.prerelease && <span className="gh-badge">prerelease</span>}
+                            <button onClick={() => handleShare(r.name || r.tag_name)} className="hover:text-foreground ml-1 transition-colors" title="Share App Link">
+                              <Share2 size={14} />
+                            </button>
                           </div>
                         </div>
                         {r.body && (

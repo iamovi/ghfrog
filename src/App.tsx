@@ -6,6 +6,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/Navbar";
+import { RateLimitBanner } from "@/components/RateLimitBanner";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import SearchPage from "./pages/Search.tsx";
@@ -22,6 +23,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <RateLimitBanner />
             <Navbar />
             <Routes>
               <Route path="/" element={<Index />} />

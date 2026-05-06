@@ -1,5 +1,4 @@
 import { cacheGet, cacheSet, isFresh, type CacheEntry } from "./cache";
-
 const API = "https://api.github.com";
 
 export interface Repo {
@@ -126,7 +125,20 @@ async function ghFetch<T>(path: string, opts: FetchOpts): Promise<T> {
   if (!res.ok) {
     if (cached) return cached.data; // graceful fallback (e.g. rate-limited)
     const text = await res.text().catch(() => "");
-    throw new Error(`GitHub API ${res.status}: ${text || res.statusText}`);
+    
+    if (res.status === 403 && text.includes("API rate limit exceeded")) {
+      throw new Error("GitHub API rate limit exceeded. Please try again later or add a Personal Access Token in settings to increase your limit.");
+    }
+
+    let errorMsg = text || res.statusText;
+    try {
+      const json = JSON.parse(text);
+      if (json.message) errorMsg = json.message;
+    } catch {
+      // Ignore parse error, use raw text
+    }
+
+    throw new Error(`GitHub API ${res.status}: ${errorMsg}`);
   }
 
   const data = (await res.json()) as T;

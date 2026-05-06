@@ -1,6 +1,7 @@
 import { HomeSection } from "@/components/HomeSection";
 import { RecentSection } from "@/components/RecentSection";
 import { Helmet } from "react-helmet-async";
+import { GithubIcon as Github } from "@/components/GithubIcon";
 
 const Index = () => {
   // ISO date 30 days ago for trending
@@ -50,8 +51,16 @@ const Index = () => {
           viewAllHref="/search?q=stars%3A%3E500&sort=updated"
         />
 
-        <footer className="text-center text-xs text-muted-foreground py-8 border-t border-border mt-10">
-          Built with 🐸 · Releases from the GitHub API · Cached locally to save quota
+        <footer className="text-center text-xs text-muted-foreground py-8 border-t border-border mt-10 flex flex-col items-center gap-4">
+          <div>Built with 🐸 · Releases from the GitHub API · Cached locally to save quota</div>
+          <a
+            href="https://github.com/iamovi/ghfrog"
+            target="_blank"
+            rel="noreferrer"
+            className="gh-btn inline-flex items-center gap-2 text-foreground"
+          >
+            <Github size={14} /> View on GitHub
+          </a>
         </footer>
       </main>
     </div>
