@@ -2,9 +2,10 @@ import { RepoCard } from "@/components/RepoCard";
 import { useFavorites } from "@/hooks/useFavorites";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { RefreshCw } from "lucide-react";
 
 export default function FavoritesPage() {
-  const { favs } = useFavorites();
+  const { favs, loading, user } = useFavorites();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -13,7 +14,17 @@ export default function FavoritesPage() {
       </Helmet>
       <main className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-extrabold mb-6">Favorites</h1>
-        {favs.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center py-12 text-muted-foreground">
+            <RefreshCw className="animate-spin mr-2" size={24} />
+            Loading favorites...
+          </div>
+        ) : !user ? (
+          <div className="gh-card p-8 text-center">
+            <p className="text-muted-foreground mb-4">Sign in to save and sync your favorites.</p>
+            <Link to="/" className="gh-btn-primary">Browse apps</Link>
+          </div>
+        ) : favs.length === 0 ? (
           <div className="gh-card p-8 text-center">
             <p className="text-muted-foreground mb-4">No favorites yet.</p>
             <Link to="/" className="gh-btn-primary">Browse apps</Link>

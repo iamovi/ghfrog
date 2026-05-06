@@ -34,6 +34,7 @@ export function useAuth() {
       provider: "github",
       options: {
         scopes: "public_repo",
+        redirectTo: window.location.origin,
       },
     });
     if (error) throw error;
