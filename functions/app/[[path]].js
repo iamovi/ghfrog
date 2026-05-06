@@ -21,6 +21,7 @@ export async function onRequestGet(context) {
   let ogTitle = `${repo} by ${owner} - GHFrog`;
   let ogDesc = `Discover releases, download binaries, and explore ${repo} on GHFrog.`;
   let ogImage = "";
+  let ogStars = "";
 
   try {
     const ghResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
@@ -35,6 +36,13 @@ export async function onRequestGet(context) {
       if (data.name) ogTitle = `${data.name} - GHFrog`;
       if (data.description) ogDesc = data.description;
       if (data.owner && data.owner.avatar_url) ogImage = data.owner.avatar_url;
+      if (data.stargazers_count != null) ogStars = `⭐ ${data.stargazers_count.toLocaleString()} stars`;
+      if (data.language) {
+        ogDesc = `${ogDesc} | ${data.language}`;
+      }
+      if (ogStars) {
+        ogDesc = `${ogDesc} | ${ogStars}`;
+      }
     }
   } catch (err) {
     // Graceful fallback if GitHub API fails
@@ -43,25 +51,41 @@ export async function onRequestGet(context) {
 
   // Fetch the standard React App (index.html)
   const appResponse = await env.ASSETS.fetch(request);
+
+  const esc = (s) => s.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   
-  // Rewrite HTML stream injecting dynamic tags
+  // Rewrite HTML stream: REMOVE existing static OG tags, then INJECT dynamic ones
   let finalResponse = new HTMLRewriter()
     .on('title', {
       element(e) {
         e.setInnerContent(ogTitle);
       }
     })
+    // Remove existing static meta tags that we want to override
+    .on('meta[property="og:title"]', { element(e) { e.remove(); } })
+    .on('meta[property="og:description"]', { element(e) { e.remove(); } })
+    .on('meta[property="og:image"]', { element(e) { e.remove(); } })
+    .on('meta[name="twitter:card"]', { element(e) { e.remove(); } })
+    .on('meta[name="twitter:title"]', { element(e) { e.remove(); } })
+    .on('meta[name="twitter:description"]', { element(e) { e.remove(); } })
+    .on('meta[name="twitter:image"]', { element(e) { e.remove(); } })
+    .on('meta[name="description"]', { element(e) { e.remove(); } })
+    // Inject the dynamic tags at the end of <head>
     .on('head', {
       element(e) {
-        e.append(`<meta property="og:title" content="${ogTitle.replace(/"/g, '&quot;')}">`, { html: true });
-        e.append(`<meta property="og:description" content="${ogDesc.replace(/"/g, '&quot;')}">`, { html: true });
+        e.append(`<meta name="description" content="${esc(ogDesc)}">`, { html: true });
+        e.append(`<meta property="og:title" content="${esc(ogTitle)}">`, { html: true });
+        e.append(`<meta property="og:description" content="${esc(ogDesc)}">`, { html: true });
+        e.append(`<meta property="og:type" content="website">`, { html: true });
         if (ogImage) {
           e.append(`<meta property="og:image" content="${ogImage}">`, { html: true });
-          e.append(`<meta name="twitter:card" content="summary_large_image">`, { html: true });
+        }
+        e.append(`<meta name="twitter:card" content="${ogImage ? 'summary' : 'summary'}">`, { html: true });
+        e.append(`<meta name="twitter:title" content="${esc(ogTitle)}">`, { html: true });
+        e.append(`<meta name="twitter:description" content="${esc(ogDesc)}">`, { html: true });
+        if (ogImage) {
           e.append(`<meta name="twitter:image" content="${ogImage}">`, { html: true });
         }
-        e.append(`<meta name="twitter:title" content="${ogTitle.replace(/"/g, '&quot;')}">`, { html: true });
-        e.append(`<meta name="twitter:description" content="${ogDesc.replace(/"/g, '&quot;')}">`, { html: true });
       }
     })
     .transform(appResponse);
