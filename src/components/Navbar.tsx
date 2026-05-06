@@ -98,16 +98,16 @@ export function Navbar() {
               <Bookmark size={16} />
             </Link>
             {loading ? (
-              <div className="w-[32px] h-[32px] bg-muted animate-pulse rounded-[3px] border-2 border-border" />
+              <div className="w-9 h-9 bg-muted animate-pulse rounded-[3px] border-2 border-border" />
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="gh-btn !p-0 w-8 h-8 rounded-[2px]" aria-label="User profile">
+                  <button className="gh-btn !p-0 w-9 h-9" aria-label="User profile">
                     {user ? (
                       <img 
                         src={user.user_metadata.avatar_url} 
                         alt={user.user_metadata.user_name} 
-                        className="w-full h-full rounded-[2px] object-cover"
+                        className="w-full h-full rounded-[1px] object-cover"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

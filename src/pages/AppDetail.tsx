@@ -87,10 +87,10 @@ export default function AppDetail() {
         ) : (
           <>
             <div className="gh-card p-5 mb-5">
-              <div className="flex items-start gap-4 flex-wrap">
+              <div className="flex flex-col sm:flex-row items-start gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-muted-foreground">{owner}</div>
-                  <h1 className="flex items-center gap-3 text-3xl font-extrabold leading-tight break-words">
+                  <h1 className="flex items-center gap-3 text-2xl sm:text-3xl font-extrabold leading-tight break-words">
                     <img src={data.owner.avatar_url} alt={`${data.owner.login} avatar`} className="w-8 h-8 shrink-0 rounded-[3px] bg-muted object-cover border border-border" />
                     <span>{data.name}</span>
                   </h1>
@@ -104,7 +104,7 @@ export default function AppDetail() {
                     {latest && <span className="gh-badge">Latest: {latest.tag_name}</span>}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 shrink-0">
+                <div className="flex flex-row sm:flex-col gap-2 flex-wrap w-full sm:w-auto shrink-0">
                   <button
                     onClick={() =>
                       toggle({
@@ -116,12 +116,12 @@ export default function AppDetail() {
                         language: data.language,
                       })
                     }
-                    className="gh-btn"
+                    className="gh-btn flex-1 sm:flex-initial"
                   >
                     <Star size={14} className={fav ? "fill-current" : ""} style={fav ? { color: "hsl(var(--frog))" } : undefined} />
                     {fav ? "Saved" : "Save"}
                   </button>
-                  <a href={data.html_url} target="_blank" rel="noreferrer" className="gh-btn">
+                  <a href={data.html_url} target="_blank" rel="noreferrer" className="gh-btn flex-1 sm:flex-initial">
                     <ExternalLink size={14} /> GitHub
                   </a>
                   <button
@@ -129,7 +129,7 @@ export default function AppDetail() {
                       setRefreshing(true);
                       load(true);
                     }}
-                    className="gh-btn"
+                    className="gh-btn flex-1 sm:flex-initial"
                     disabled={refreshing}
                   >
                     <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} /> Refresh
@@ -138,7 +138,7 @@ export default function AppDetail() {
               </div>
 
               {latest && (
-                <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center gap-2">
+                <div className="mt-4 pt-4 border-t border-border flex flex-col sm:flex-row sm:items-center gap-3">
                   {best ? (
                     <a
                       href={best.browser_download_url}
@@ -159,7 +159,7 @@ export default function AppDetail() {
                   {latest.assets.length > 0 && (
                     <button
                       onClick={() => setShowAllAssets((v) => !v)}
-                      className="gh-btn"
+                      className="gh-btn w-full sm:w-auto"
                     >
                       All downloads
                       <ChevronDown
@@ -219,7 +219,7 @@ export default function AppDetail() {
             {releases && releases.length > 0 && (
               <>
                 <div 
-                  className="inline-flex mb-6 border-2 border-border rounded-[3px] overflow-x-auto" 
+                  className="flex flex-col sm:flex-row mb-6 border-2 border-border rounded-[3px]" 
                   style={{ boxShadow: "2px 2px 0 0 hsl(var(--border))" }}
                 >
                   {(
@@ -232,8 +232,8 @@ export default function AppDetail() {
                     <button
                       key={key}
                       onClick={() => setTab(key)}
-                      className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${
-                        index !== 0 ? "border-l-2 border-border" : ""
+                      className={`px-4 py-2 text-sm font-bold transition-colors flex-1 ${
+                        index !== 0 ? "border-t-2 sm:border-t-0 sm:border-l-2 border-border" : ""
                       } ${
                         tab === key 
                           ? "bg-foreground text-background" 
